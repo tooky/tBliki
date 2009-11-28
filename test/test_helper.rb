@@ -1,12 +1,16 @@
 module SimpleTest
   class Context
-    attr_reader :__name
     def initialize name
-      @__name = name
+      @__vars = {}
+      @__vars[:name] = name
+    end
+
+    def __name
+      @__vars[:name]
     end
 
     def __tests
-      @__tests ||= {}
+      @__vars[:tests] ||= {}
     end
 
     def check name, &block
@@ -16,9 +20,14 @@ module SimpleTest
     def report
       puts __name
       __tests.each_pair do |name, test|
+        test_variables.each {|var| instance_variable_set(var, nil)}
         result = test.call ? 'PASS' : 'FAIL' 
         puts "\t#{result} : #{name}"
       end
+    end
+
+    def test_variables
+      instance_variables - ['@__vars']
     end
 
     def should_equal(expected, actual)
@@ -41,6 +50,16 @@ if ENV['META_TEST']
 
     check 'true is not false' do
       !should_equal true, false
+    end
+  end
+
+  context 'instance variables' do
+    check 'do not affect other tests' do
+      should_equal @var, nil
+    end
+    check 'can be evaluated' do
+      @var = 1234
+      should_equal 1234, @var
     end
   end
 end
