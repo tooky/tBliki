@@ -13,14 +13,23 @@ module SimpleTest
       @__vars[:tests] ||= {}
     end
 
+    def __setup
+      @__vars[:setup]
+    end
+
     def check name, &block
       __tests[name] = block
+    end
+
+    def setup &block
+      @__vars[:setup] = block
     end
 
     def report
       puts __name
       __tests.each_pair do |name, test|
         test_variables.each {|var| instance_variable_set(var, nil)}
+        __setup.call if __setup
         result = test.call ? 'PASS' : 'FAIL' 
         puts "\t#{result} : #{name}"
       end
@@ -54,12 +63,22 @@ if ENV['META_TEST']
   end
 
   context 'instance variables' do
-    check 'do not affect other tests' do
-      should_equal @var, nil
-    end
     check 'can be evaluated' do
       @var = 1234
       should_equal 1234, @var
+    end
+    check 'do not affect other tests' do
+      should_equal @var, nil
+    end
+  end
+
+  context 'tests with setup' do
+    setup do
+      @var = 'hello'
+    end
+
+    check 'instance variables set in setup available in tests' do
+      should_equal 'hello', @var
     end
   end
 end
